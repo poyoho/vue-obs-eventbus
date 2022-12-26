@@ -1,0 +1,125 @@
+name: CI
+
+env:
+  # 7 GiB by default on GitHub, setting to 6 GiB
+  # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources
+  NODE_OPTIONS: --max-old-space-size=6144
+
+on:
+  push:
+    branches:
+      - master
+      - release/*
+      - feat/*
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    timeout-minutes: 10
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        node_version: [14, 16]
+      fail-fast: false
+
+    name: "Test: node-${{ matrix.node_version }}, ${{ matrix.os }}"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 6
+
+      - name: Set node version to ${{ matrix.node_version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node_version }}
+          cache: "pnpm"
+
+      - name: Install deps
+        run: pnpm install
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Test
+        run: pnpm run test
+
+      - name: Test coverage
+        run: pnpm run test:coverage
+
+      - name: Upload coverage results to Codecov.io
+        if: github.repository == 'poyoho/storage-hook' && github.ref == 'refs/heads/master'
+        run: pnpm run codecov
+        env:
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: reporter
+        uses: actions/github-script@v6
+        if: matrix.node_version == '16' && matrix.os == 'ubuntu-latest' && github.event_name == 'pull_request'
+        with:
+          script: |
+            const fs = require('fs')
+            const path = require('path')
+            const comment = {
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: fs.readFileSync(path.resolve('./report.md'), { encoding: 'utf-8' })
+            }
+            async function action() {
+              let commentId
+              const comments = (await github.rest.issues.listComments({
+                ...context.repo,
+                issue_number: context.issue.number
+              })).data
+              for (const c of comments) {
+                if (c.user.type === 'Bot' && c.body.includes('<!--report-->')) {
+                  commentId = c.id;
+                  break;
+                }
+              }
+              if (commentId) {
+                await github.rest.issues.updateComment({
+                  comment_id: commentId,
+                  ...comment
+                })
+              } else {
+                await github.rest.issues.createComment(comment)
+              }
+            }
+            action()
+
+  lint:
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    name: "Lint: node-16, ubuntu-latest"
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 6
+
+      - name: Set node version to 16
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: "pnpm"
+
+      - name: Install deps
+        run: pnpm install
+
+      - name: Check formatting
+        run: pnpm prettier --check .

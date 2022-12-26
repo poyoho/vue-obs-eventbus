@@ -1,0 +1,10 @@
+LICENSE.md
+.prettierignore
+pnpm-lock.yaml
+pnpm-workspace.yaml
+coverage
+dist
+.prettierrc.json
+*.md
+*.json
+*.yml
