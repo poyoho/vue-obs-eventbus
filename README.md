@@ -1,1 +1,1 @@
-# vue-obs-eventbus
+# vue-obs-bridge

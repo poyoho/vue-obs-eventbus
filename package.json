@@ -1,20 +1,20 @@
 {
-  "name": "vue-obs-eventbus",
+  "name": "vue-obs-bridge",
   "license": "MIT",
   "author": "poyoho",
-  "description": "vue eventbus with devtools",
+  "description": "vue bridge with devtools",
   "type": "module",
-  "main": "dist/vue-obs-eventbus.es.js",
-  "module": "dist/vue-obs-eventbus.es.js",
+  "main": "dist/vue-obs-bridge.es.js",
+  "module": "dist/vue-obs-bridge.es.js",
   "types": "dist/types/index.d.ts",
   "version": "0.0.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/poyoho/vue-obs-eventbus"
+    "url": "https://github.com/poyoho/vue-obs-bridge"
   },
   "keywords": [
     "vue",
-    "eventbus",
+    "bridge",
     "devtools"
   ],
   "scripts": {
@@ -23,9 +23,9 @@
     "test": "vitest run",
     "test:dev": "vitest",
     "test:coverage": "vitest run --coverage",
-    "release": "tsx scripts/release.ts",
+    "typecheck": "tsc --noEmit",
+    "release": "bumpp --commit --push --tag && npm publish",
     "format": "prettier --write .",
-    "ci-publish": "tsx scripts/publishCI.ts",
     "codecov": "codecov",
     "prepublishOnly": "npm run build"
   },
@@ -39,8 +39,13 @@
     "prettier": "2.5.1",
     "simple-git-hooks": "^2.7.0",
     "typescript": "^4.6.2",
-    "vite": "2.8.6",
-    "vitest": "^0.7.0"
+    "vite": "~4.0.3",
+    "vitest": "~0.26.2",
+    "vue": "~3.2.30",
+    "@vitejs/plugin-vue": "~4.0.0"
+  },
+  "dependencies": {
+    "@vue/devtools-api": "~6.4.5"
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm exec lint-staged --concurrent false",

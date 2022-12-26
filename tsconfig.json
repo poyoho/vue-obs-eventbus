@@ -11,7 +11,10 @@
     "esModuleInterop": true,
     "outDir": "dist/types",
     "declaration": true,
-    "emitDeclarationOnly": true
+    "emitDeclarationOnly": true,
+    "paths": {
+      "vue-obs-eventbus": ["./lib/index.ts"]
+    },
   },
-  "include": ["lib/"]
+  "include": ["lib"]
 }

@@ -1,17 +1,24 @@
 /// <reference types="vitest" />
 import { defineConfig } from 'vite'
-import Reporter from './scripts/reporter'
+import path from "path"
+import vue from "@vitejs/plugin-vue"
 
 export default defineConfig({
   build: {
     lib: {
       name: 'vue-obs-eventbus',
-      formats: ['es', 'iife'],
+      formats: ['es'],
       entry: './lib/index.ts'
-    },
-    sourcemap: true
+    }
   },
-  plugins: [Reporter()],
+  resolve: {
+    alias: {
+      "vue-obs-eventbus": path.resolve("./lib/index.ts")
+    }
+  },
+  plugins: [
+    vue()
+  ],
   test: {
     environment: 'happy-dom',
     coverage: {
