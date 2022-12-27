@@ -27,6 +27,11 @@ export interface Emitter<Events extends Record<EventType, unknown>> {
   off<Key extends keyof Events>(type: Key, handler?: Handler<Events[Key]>): void;
   emit<Key extends keyof Events>(type: Key, event: Events[Key]): void;
   emit<Key extends keyof Events>(type: undefined extends Events[Key] ? Key : never): void;
+
+  $on<Key extends keyof Events>(type: Key, handler: Handler<Events[Key]>): void;
+  $off<Key extends keyof Events>(type: Key, handler?: Handler<Events[Key]>): void;
+  $emit<Key extends keyof Events>(type: Key, event: Events[Key]): void;
+  $emit<Key extends keyof Events>(type: undefined extends Events[Key] ? Key : never): void;
 }
 
 export type EventBusActionsHandler = (event: {
@@ -79,58 +84,66 @@ export function defineBus<Events extends Record<EventType, unknown>>(name: strin
 
     const all = new Map()
 
+    function on<Key extends keyof Events>(type: Key, handler: GenericEventHandler) {
+      const handlers: Array<GenericEventHandler> | undefined = all.get(type);
+      if (handlers) {
+        handlers.push(handler)
+      } else {
+        all.set(type, [handler] as EventHandlerList<Events[keyof Events]>)
+      }
+    }
+
+    function off<Key extends keyof Events>(type: Key, handler?: GenericEventHandler) {
+      const handlers: Array<GenericEventHandler> | undefined = all.get(type);
+      if (handlers) {
+        if (handler) {
+          handlers.splice(handlers.indexOf(handler) >>> 0, 1);
+        }
+        else {
+          all.set(type, []);
+        }
+      }
+    }
+
+    function emit<Key extends keyof Events>(type: Key, evt?: Events[Key]) {
+      let handlers = all.get(type);
+      if (handlers) {
+        let collectErrFn = []
+        const onActionArgs = {
+          type,
+          args: evt,
+          onError: (fn) => {
+            collectErrFn.push(fn)
+          }
+        }
+        eventbus._actions.forEach(onAction => {
+          onAction(onActionArgs as any)
+        })
+        try {
+          (handlers as EventHandlerList<Events[keyof Events]>)
+            .slice()
+            .map((handler) => {
+              handler(evt!)
+            })
+        } catch (err: any) {
+          collectErrFn.forEach(fn => fn(err))
+          throw err
+        }
+      }
+    }
+
     const target = {
       name,
 
       all,
 
-      on<Key extends keyof Events>(type: Key, handler: GenericEventHandler) {
-        const handlers: Array<GenericEventHandler> | undefined = all.get(type);
-        if (handlers) {
-          handlers.push(handler)
-        } else {
-          all.set(type, [handler] as EventHandlerList<Events[keyof Events]>)
-        }
-      },
+      on,
+      off,
+      emit,
 
-      off<Key extends keyof Events>(type: Key, handler?: GenericEventHandler) {
-        const handlers: Array<GenericEventHandler> | undefined = all.get(type);
-        if (handlers) {
-          if (handler) {
-            handlers.splice(handlers.indexOf(handler) >>> 0, 1);
-          }
-          else {
-            all.set(type, []);
-          }
-        }
-      },
-
-      emit<Key extends keyof Events>(type: Key, evt?: Events[Key]) {
-        let handlers = all.get(type);
-        if (handlers) {
-          let collectErrFn = []
-          const onActionArgs = {
-            type,
-            args: evt,
-            onError: (fn) => {
-              collectErrFn.push(fn)
-            }
-          }
-          eventbus._actions.forEach(onAction => {
-            onAction(onActionArgs as any)
-          })
-          try {
-            (handlers as EventHandlerList<Events[keyof Events]>)
-              .slice()
-              .map((handler) => {
-                handler(evt!)
-              })
-          } catch (err: any) {
-            collectErrFn.forEach(fn => fn(err))
-            throw err
-          }
-        }
-      },
+      $on: on,
+      $off: off,
+      $emit: emit,
     }
 
     return target
