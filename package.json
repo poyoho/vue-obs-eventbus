@@ -39,9 +39,10 @@
   ],
   "scripts": {
     "dev": "vite",
-    "build": "pnpm build:dev && pnpm build:prod",
+    "build": "run-p build:dev build:prod build:dts",
     "build:dev": "vite build",
     "build:prod": "vite build -c vite.config.prod",
+    "build:dts": "tsc",
     "test": "vitest run",
     "test:dev": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -65,7 +66,8 @@
     "vite": "~4.0.3",
     "vitest": "~0.26.2",
     "vue": "~3.2.30",
-    "@vitejs/plugin-vue": "~4.0.0"
+    "@vitejs/plugin-vue": "~4.0.0",
+    "npm-run-all": "^4.1.5"
   },
   "dependencies": {
     "@vue/devtools-api": "^6.1.0",
