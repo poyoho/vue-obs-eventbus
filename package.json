@@ -6,7 +6,7 @@
   "type": "module",
   "main": "index.js",
   "module": "dist/vue-obs-eventbus.mjs",
-  "types": "dist/vue-obs-eventbus.d.ts",
+  "types": "dist/types/index.d.ts",
   "exports": {
     ".": {
       "browser": "./dist/vue-obs-eventbus.esm-browser.js",
