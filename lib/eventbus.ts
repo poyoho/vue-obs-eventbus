@@ -23,7 +23,14 @@ export interface Emitter<Events extends Record<EventType, unknown>> {
   off<Key extends keyof Events>(type: Key, handler?: Handler<Events[Key]>): void;
   emit<Key extends keyof Events>(type: Key, event: Events[Key]): void;
   emit<Key extends keyof Events>(type: undefined extends Events[Key] ? Key : never): void;
+  $onActions<Key extends keyof Events>(handler?: EventBusActionsHandler)
 }
+
+export type EventBusActionsHandler = (event: {
+  type: EventType,
+  args: any,
+  onError: (err: any) => void
+}) => void;
 
 export interface EventBus<Events extends Record<EventType, unknown> = any> extends Emitter<Events> {
   install: (app: App) => void
@@ -68,12 +75,13 @@ export function defineEventBus<Events extends Record<EventType, unknown>>(): () 
   return useEventBus
 }
 
-export function createEventBus<Events extends Record<EventType, unknown>>(): Emitter<Events> {
+export function createEventBus<Events extends Record<EventType, unknown>>(name: string): Emitter<Events> {
   type GenericEventHandler =
     | Handler<Events[keyof Events]>
     | WildcardHandler<Events>;
 
-  let all: EventHandlerMap<Events> = new Map()
+  const _onActions = []
+  const all = new Map()
 
   const eventbus: EventBus<Events> = {
     on<Key extends keyof Events>(type: Key, handler: GenericEventHandler) {
@@ -100,12 +108,32 @@ export function createEventBus<Events extends Record<EventType, unknown>>(): Emi
     emit<Key extends keyof Events>(type: Key, evt?: Events[Key]) {
       let handlers = all.get(type);
       if (handlers) {
-        (handlers as EventHandlerList<Events[keyof Events]>)
-          .slice()
-          .map((handler) => {
-            handler(evt!);
-          });
+        let collectErrFn = []
+        const onActionArgs = {
+          type,
+          args: evt,
+          onError: (fn) => {
+            collectErrFn.push(fn)
+          }
+        }
+        _onActions.forEach(onAction => {
+          onAction(onActionArgs)
+        })
+        try {
+          (handlers as EventHandlerList<Events[keyof Events]>)
+            .slice()
+            .map((handler) => {
+              handler(evt!)
+            })
+        } catch (err: any) {
+          collectErrFn.forEach(fn => fn(err))
+          throw err
+        }
       }
+    },
+
+    $onActions(handler) {
+      _onActions.push(handler)
     },
 
     install(app) {
@@ -125,6 +153,8 @@ export function createEventBus<Events extends Record<EventType, unknown>>(): Emi
 
     _map: new Map(),
   }
+
+  eventbus._map.set(name, all)
 
   return eventbus
 }

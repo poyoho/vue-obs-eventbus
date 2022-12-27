@@ -10,10 +10,10 @@ const eventbus = useEventBus()
 const print = ref('<emit print event>')
 
 eventbus.on('print', (data) => {
-  print.value = data
+  print.value = data.data
 })
 
 function emitHello() {
-  eventbus.emit('print', 'print')
+  eventbus.emit('print', { data: 'print' })
 }
 </script>
