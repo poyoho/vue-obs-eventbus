@@ -9,7 +9,13 @@ export default defineConfig({
       name: 'vue-obs-eventbus',
       formats: ['es'],
       entry: './lib/index.ts'
+    },
+    rollupOptions: {
+      external: ['vue-demi', '@vue/devtools-api'],
     }
+  },
+  define: {
+    __DEV__: true
   },
   resolve: {
     alias: {

@@ -1,4 +1,4 @@
-import { App, getCurrentInstance, InjectionKey, isVue2 } from 'vue-demi'
+import { App, getCurrentInstance, inject, InjectionKey, isVue2 } from 'vue-demi'
 import { registerEventBusDevtools } from './devtools';
 import { IS_CLIENT } from './utils';
 
@@ -62,7 +62,7 @@ export function defineEventBus<Events extends Record<EventType, unknown>>(): () 
       )
     }
 
-    return (instance as any).$eventbus
+    return inject(eventbusSymbol)
   }
 
   return useEventBus
