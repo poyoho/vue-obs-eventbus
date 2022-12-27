@@ -7,12 +7,14 @@ export default defineConfig({
   build: {
     lib: {
       name: 'vue-obs-eventbus',
-      formats: ['es'],
-      entry: './lib/index.ts'
+      formats: ['es', 'cjs'],
+      entry: './lib/index.ts',
+      fileName: 'vue-obs-eventbus'
     },
     rollupOptions: {
       external: ['vue-demi', '@vue/devtools-api'],
-    }
+    },
+    emptyOutDir: false,
   },
   define: {
     __DEV__: true

@@ -1,25 +1,47 @@
 {
-  "name": "vue-obs-bridge",
+  "name": "vue-obs-eventbus",
   "license": "MIT",
   "author": "poyoho",
-  "description": "vue bridge with devtools",
+  "description": "vue eventbus with devtools",
   "type": "module",
-  "main": "dist/vue-obs-bridge.es.js",
-  "module": "dist/vue-obs-bridge.es.js",
-  "types": "dist/types/index.d.ts",
+  "main": "index.js",
+  "module": "dist/vue-obs-eventbus.mjs",
+  "types": "dist/vue-obs-eventbus.d.ts",
+  "exports": {
+    ".": {
+      "browser": "./dist/vue-obs-eventbus.esm-browser.js",
+      "node": {
+        "import": {
+          "production": "./dist/vue-obs-eventbus.prod.cjs",
+          "development": "./dist/vue-obs-eventbus.mjs",
+          "default": "./dist/vue-obs-eventbus.mjs"
+        },
+        "require": {
+          "production": "./dist/vue-obs-eventbus.prod.cjs",
+          "development": "./dist/vue-obs-eventbus.cjs",
+          "default": "./index.js"
+        }
+      },
+      "import": "./dist/vue-obs-eventbus.mjs"
+    },
+    "./package.json": "./package.json",
+    "./dist/*": "./dist/*"
+  },
   "version": "0.0.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/poyoho/vue-obs-bridge"
+    "url": "https://github.com/poyoho/vue-obs-eventbus"
   },
   "keywords": [
     "vue",
-    "bridge",
+    "eventbus",
     "devtools"
   ],
   "scripts": {
     "dev": "vite",
-    "build": "vite build && tsc",
+    "build": "pnpm build:dev && pnpm build:prod",
+    "build:dev": "vite build",
+    "build:prod": "vite build -c vite.config.prod",
     "test": "vitest run",
     "test:dev": "vitest",
     "test:coverage": "vitest run --coverage",

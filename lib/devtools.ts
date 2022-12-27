@@ -1,8 +1,5 @@
 import { EventBus } from './eventbus'
-import {
-  setupDevtoolsPlugin,
-  App as DevtoolsApp
-} from "@vue/devtools-api"
+import type { App as DevtoolsApp } from "@vue/devtools-api"
 import { toastMessage } from "./utils"
 
 const EVENTBUS_LAYER_ID = 'eventbus:mutations'
@@ -10,7 +7,8 @@ const INSPECTOR_ID = 'eventbus'
 
 let runningActionId = 0
 
-export function registerEventBusDevtools(app: DevtoolsApp, eventbus: EventBus) {
+export async function registerEventBusDevtools(app: DevtoolsApp, eventbus: EventBus) {
+  const { setupDevtoolsPlugin } = await import('@vue/devtools-api')
   setupDevtoolsPlugin({
     id: "vue-obs-eventbus",
     label: "EventBus 🚗",
