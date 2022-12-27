@@ -36,21 +36,16 @@ export function registerEventBusDevtools(app: DevtoolsApp, eventbus: EventBus) {
       actions: [],
     })
 
-    api.on.getInspectorState((payload) => {
-      if (payload.app === app && payload.inspectorId === INSPECTOR_ID) {
-        const inspectedStore = eventbus._map
+    // api.on.getInspectorTree((payload) => {
+    //   if (payload.app === app && payload.inspectorId === INSPECTOR_ID) {
+    //     let stores = Array.from(eventbus._map.keys()).map(v => ({
+    //       id: v,
+    //       label: v
+    //     }))
 
-        if (!inspectedStore) {
-          // this could be the selected store restored for a different project
-          // so it's better not to say anything here
-          return
-        }
-
-        // if (inspectedStore) {
-        //   payload.state = formatStoreForInspectorState(inspectedStore)
-        // }
-      }
-    })
+    //     payload.rootNodes = stores
+    //   }
+    // })
 
     eventbus.$onActions(({ args, type, onError }) => {
       const now = typeof api.now === 'function' ? api.now.bind(api) : Date.now
@@ -75,6 +70,7 @@ export function registerEventBusDevtools(app: DevtoolsApp, eventbus: EventBus) {
           layerId: EVENTBUS_LAYER_ID,
           event: {
             time: now(),
+            logType: 'error',
             title: '🦧 ' + type.toString(),
             subtitle: 'error',
             data: {
