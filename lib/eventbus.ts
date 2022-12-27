@@ -1,3 +1,7 @@
+import { App, getCurrentInstance, InjectionKey, isVue2 } from 'vue-demi'
+import { registerEventBusDevtools } from './devtools';
+import { IS_CLIENT } from './utils';
+
 export type EventType = string | symbol;
 
 export type Handler<T = unknown> = (event: T) => void;
@@ -21,22 +25,47 @@ export interface Emitter<Events extends Record<EventType, unknown>> {
   emit<Key extends keyof Events>(type: undefined extends Events[Key] ? Key : never): void;
 }
 
-export const _map = new Map<string, EventHandlerMap<any>>()
+export interface EventBus<Events extends Record<EventType, unknown> = any> extends Emitter<Events> {
+  install: (app: App) => void
+  /**
+   * App linked to this eventbus instance
+   *
+   * @internal
+   */
+  _app: App
 
-export function createEventBus<Events extends Record<EventType, unknown>>(name: string): Emitter<Events> {
+  /**
+   * Registry of eventbus used by this eventbus.
+   *
+   * @internal
+   */
+  _map: Map<string, EventHandlerMap<any>>
+}
+
+export const eventbusSymbol = (
+  __DEV__ ? Symbol('eventbus') : Symbol()
+) as InjectionKey<EventBus>
+
+/**
+ * just for declare typescript
+*/
+export function defineEventBus<Events extends Record<EventType, unknown>>(): () => Emitter<Events> {
+  function useEventBus() {
+    const instance = getCurrentInstance()
+    return (instance as any).$eventbus
+  }
+
+  return useEventBus
+}
+
+export function createEventBus<Events extends Record<EventType, unknown>>(): Emitter<Events> {
   type GenericEventHandler =
     | Handler<Events[keyof Events]>
     | WildcardHandler<Events>;
 
-  let all!: EventHandlerMap<Events>
-  if (_map.has(name)) {
-    all = _map.get(name) as EventHandlerMap<Events>
-  } else {
-    all = new Map()
-    _map.set(name, all)
-  }
+  let all: EventHandlerMap<Events> = new Map()
 
-  const target: Emitter<Events> = {
+  const eventbus: EventBus<Events> = {
     on<Key extends keyof Events>(type: Key, handler: GenericEventHandler) {
       const handlers: Array<GenericEventHandler> | undefined = all.get(type);
       if (handlers) {
@@ -67,8 +96,25 @@ export function createEventBus<Events extends Record<EventType, unknown>>(name: 
             handler(evt!);
           });
       }
-    }
+    },
+
+    install(app) {
+      if (!isVue2) {
+        eventbus._app = app
+        app.provide(eventbusSymbol, eventbus)
+        app.config.globalProperties.$eventbus = eventbus
+
+        if (__DEV__ && IS_CLIENT) {
+          registerEventBusDevtools(app, eventbus)
+        }
+      }
+    },
+
+    // @ts-ignore
+    _app: null,
+
+    _map: new Map(),
   }
 
-  return target
+  return eventbus
 }

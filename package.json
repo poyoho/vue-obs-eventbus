@@ -30,6 +30,7 @@
     "prepublishOnly": "npm run build"
   },
   "devDependencies": {
+    "@types/node": "~18.11.18",
     "lint-staged": "^12.3.3",
     "c8": "^7.11.0",
     "codecov": "^3.8.3",
@@ -45,7 +46,13 @@
     "@vitejs/plugin-vue": "~4.0.0"
   },
   "dependencies": {
-    "@vue/devtools-api": "~6.4.5"
+    "@vue/devtools-api": "^6.1.0",
+    "vue-demi": "*"
+  },
+  "peerDependencies": {
+    "@vue/composition-api": "^1.4.0",
+    "typescript": ">=4.4.4",
+    "vue": "^2.6.14 || ^3.2.0"
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm exec lint-staged --concurrent false",
