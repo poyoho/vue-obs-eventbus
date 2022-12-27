@@ -1,3 +1,3 @@
 export * from './globalExtensions'
-export * from "./plugin"
+export * from "./vue2-plugin"
 export * from "./eventbus"

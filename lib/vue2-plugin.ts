@@ -8,7 +8,7 @@ export const EventBusVuePlugin: Plugin = function(_Vue) {
     beforeCreate() {
       const options = this.$options
       if (options.eventbus) {
-        const eventbus = options.eventbus as EventBus
+        const root = options.eventbus as EventBus
         if (!(this as any)._provided) {
           const provideCache = {}
           Object.defineProperty(this, '_provided', {
@@ -16,20 +16,12 @@ export const EventBusVuePlugin: Plugin = function(_Vue) {
             set: (v) => Object.assign(provideCache, v),
           })
         }
-        ;(this as any)._provided[eventbusSymbol as any] = eventbus
+        ;(this as any)._provided[eventbusSymbol as any] = root
 
-        if (!this.$eventbus) {
-          this.$eventbus = eventbus
+        root._app = this as any
+        if (__DEV__ && IS_CLIENT) {
+          registerEventBusDevtools(root._app, root)
         }
-
-        eventbus._app = this as any
-        if (IS_CLIENT) {
-          if (__DEV__) {
-            registerEventBusDevtools(eventbus._app, eventbus)
-          }
-        }
-      } else if (!this.$eventbus && options.parent && options.parent.$eventbus) {
-        this.$eventbus = options.parent.$eventbus
       }
     }
   })

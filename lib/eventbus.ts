@@ -19,11 +19,14 @@ export type EventHandlerMap<Events extends Record<EventType, unknown>> = Map<
 >;
 
 export interface Emitter<Events extends Record<EventType, unknown>> {
+  /* @internal */
+  name: string
+  /* @internal */
+  all: EventHandlerMap<any>
   on<Key extends keyof Events>(type: Key, handler: Handler<Events[Key]>): void;
   off<Key extends keyof Events>(type: Key, handler?: Handler<Events[Key]>): void;
   emit<Key extends keyof Events>(type: Key, event: Events[Key]): void;
   emit<Key extends keyof Events>(type: undefined extends Events[Key] ? Key : never): void;
-  $onActions<Key extends keyof Events>(handler?: EventBusActionsHandler)
 }
 
 export type EventBusActionsHandler = (event: {
@@ -32,7 +35,7 @@ export type EventBusActionsHandler = (event: {
   onError: (err: any) => void
 }) => void;
 
-export interface EventBus<Events extends Record<EventType, unknown> = any> extends Emitter<Events> {
+export interface EventBus {
   install: (app: App) => void
   /**
    * App linked to this eventbus instance
@@ -42,11 +45,22 @@ export interface EventBus<Events extends Record<EventType, unknown> = any> exten
   _app: App
 
   /**
-   * Registry of eventbus used by this eventbus.
+   * Registry of bus used by this eventbus.
    *
    * @internal
    */
-  _map: Map<string, EventHandlerMap<any>>
+  _map: Map<string, Emitter<any>>
+
+  /**
+   * Register a event to listen all the events of the eventbus
+  */
+  $onActions(handler?: EventBusActionsHandler)
+
+  /**
+   * actions
+   * @internal
+  */
+ _actions: EventBusActionsHandler[]
 }
 
 export const eventbusSymbol = (
@@ -56,7 +70,72 @@ export const eventbusSymbol = (
 /**
  * for declare typescript
 */
-export function defineEventBus<Events extends Record<EventType, unknown>>(): () => Emitter<Events> {
+export function defineBus<Events extends Record<EventType, unknown>>(name: string): () => Emitter<Events> {
+
+  function createEmitter<Events extends Record<EventType, unknown>>(eventbus: EventBus): Emitter<Events> {
+    type GenericEventHandler =
+      | Handler<Events[keyof Events]>
+      | WildcardHandler<Events>
+
+    const all = new Map()
+
+    const target = {
+      name,
+
+      all,
+
+      on<Key extends keyof Events>(type: Key, handler: GenericEventHandler) {
+        const handlers: Array<GenericEventHandler> | undefined = all.get(type);
+        if (handlers) {
+          handlers.push(handler)
+        } else {
+          all.set(type, [handler] as EventHandlerList<Events[keyof Events]>)
+        }
+      },
+
+      off<Key extends keyof Events>(type: Key, handler?: GenericEventHandler) {
+        const handlers: Array<GenericEventHandler> | undefined = all.get(type);
+        if (handlers) {
+          if (handler) {
+            handlers.splice(handlers.indexOf(handler) >>> 0, 1);
+          }
+          else {
+            all.set(type, []);
+          }
+        }
+      },
+
+      emit<Key extends keyof Events>(type: Key, evt?: Events[Key]) {
+        let handlers = all.get(type);
+        if (handlers) {
+          let collectErrFn = []
+          const onActionArgs = {
+            type,
+            args: evt,
+            onError: (fn) => {
+              collectErrFn.push(fn)
+            }
+          }
+          eventbus._actions.forEach(onAction => {
+            onAction(onActionArgs as any)
+          })
+          try {
+            (handlers as EventHandlerList<Events[keyof Events]>)
+              .slice()
+              .map((handler) => {
+                handler(evt!)
+              })
+          } catch (err: any) {
+            collectErrFn.forEach(fn => fn(err))
+            throw err
+          }
+        }
+      },
+    }
+
+    return target
+  }
+
   function useEventBus() {
     const instance = getCurrentInstance()
 
@@ -72,78 +151,32 @@ export function defineEventBus<Events extends Record<EventType, unknown>>(): () 
     return inject(eventbusSymbol)
   }
 
-  return useEventBus
+  function useBus(eventbus?: EventBus) {
+    eventbus ||= useEventBus()
+
+    if (!eventbus._map.has(name)) {
+      const emitter = createEmitter(eventbus)
+      eventbus._map.set(name, emitter)
+    }
+
+    return eventbus._map.get(name)
+  }
+
+  return useBus
 }
 
-export function createEventBus<Events extends Record<EventType, unknown>>(name: string): Emitter<Events> {
-  type GenericEventHandler =
-    | Handler<Events[keyof Events]>
-    | WildcardHandler<Events>;
-
-  const _onActions = []
-  const all = new Map()
-
-  const eventbus: EventBus<Events> = {
-    on<Key extends keyof Events>(type: Key, handler: GenericEventHandler) {
-      const handlers: Array<GenericEventHandler> | undefined = all.get(type);
-      if (handlers) {
-        handlers.push(handler)
-      } else {
-        all.set(type, [handler] as EventHandlerList<Events[keyof Events]>)
-      }
-    },
-
-    off<Key extends keyof Events>(type: Key, handler?: GenericEventHandler) {
-      const handlers: Array<GenericEventHandler> | undefined = all.get(type);
-      if (handlers) {
-        if (handler) {
-          handlers.splice(handlers.indexOf(handler) >>> 0, 1);
-        }
-        else {
-          all.set(type, []);
-        }
-      }
-    },
-
-    emit<Key extends keyof Events>(type: Key, evt?: Events[Key]) {
-      let handlers = all.get(type);
-      if (handlers) {
-        let collectErrFn = []
-        const onActionArgs = {
-          type,
-          args: evt,
-          onError: (fn) => {
-            collectErrFn.push(fn)
-          }
-        }
-        _onActions.forEach(onAction => {
-          onAction(onActionArgs)
-        })
-        try {
-          (handlers as EventHandlerList<Events[keyof Events]>)
-            .slice()
-            .map((handler) => {
-              handler(evt!)
-            })
-        } catch (err: any) {
-          collectErrFn.forEach(fn => fn(err))
-          throw err
-        }
-      }
-    },
-
+export function createEventBus(): EventBus {
+  const root: EventBus = {
     $onActions(handler) {
-      _onActions.push(handler)
+      root._actions.push(handler)
     },
 
     install(app) {
       if (!isVue2) {
-        eventbus._app = app
-        app.provide(eventbusSymbol, eventbus)
-        app.config.globalProperties.$eventbus = eventbus
-
+        root._app = app
+        app.provide(eventbusSymbol, root)
         if (__DEV__ && IS_CLIENT) {
-          registerEventBusDevtools(app, eventbus)
+          registerEventBusDevtools(app, root)
         }
       }
     },
@@ -152,9 +185,10 @@ export function createEventBus<Events extends Record<EventType, unknown>>(name: 
     _app: null,
 
     _map: new Map(),
+
+    _actions: []
   }
 
-  eventbus._map.set(name, all)
 
-  return eventbus
+  return root
 }
