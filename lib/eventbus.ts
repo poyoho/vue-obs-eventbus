@@ -47,11 +47,21 @@ export const eventbusSymbol = (
 ) as InjectionKey<EventBus>
 
 /**
- * just for declare typescript
+ * for declare typescript
 */
 export function defineEventBus<Events extends Record<EventType, unknown>>(): () => Emitter<Events> {
   function useEventBus() {
     const instance = getCurrentInstance()
+
+    if (__DEV__ && !instance) {
+      throw new Error(
+        `[🚗]: defineEventBus was called with no active EventBus. Did you forget to install EventBus?\n` +
+          `\tconst eventbus = createEventBus()\n` +
+          `\tapp.use(eventbus)\n` +
+          `This will fail in production.`
+      )
+    }
+
     return (instance as any).$eventbus
   }
 
