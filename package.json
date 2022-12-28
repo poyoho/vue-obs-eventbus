@@ -89,6 +89,8 @@
     ]
   },
   "files": [
-    "dist"
+    "dist",
+    "index.js",
+    "index.cjs"
   ]
 }
