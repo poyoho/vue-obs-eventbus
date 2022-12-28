@@ -6,10 +6,8 @@ import { IS_CLIENT } from "./utils"
 export function createEventBusDevToolsPlugin(): Plugin {
   return {
     install(app) {
-      if (!isVue2) {
-        if (__DEV__ && IS_CLIENT) {
-          registerEventBusDevtools(app, eventBus)
-        }
+      if (__DEV__ && IS_CLIENT) {
+        registerEventBusDevtools(app, eventBus)
       }
     },
   }
