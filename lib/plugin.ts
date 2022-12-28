@@ -1,4 +1,4 @@
-import { isVue2, Plugin } from 'vue-demi'
+import type { Plugin } from 'vue-demi'
 import { eventBus } from "./eventbus"
 import { registerEventBusDevtools } from "./devtools"
 import { IS_CLIENT } from "./utils"
