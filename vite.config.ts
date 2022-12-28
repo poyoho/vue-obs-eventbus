@@ -16,9 +16,6 @@ export default defineConfig({
     },
     emptyOutDir: false,
   },
-  esbuild: {
-    target: 'es6',
-  },
   define: {
     __DEV__: true
   },
