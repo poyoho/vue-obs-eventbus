@@ -46,7 +46,7 @@ export interface EventBus {
    *
    * @internal
    */
-  _reporter: ResolvedDevToolsReporter
+  _reporter?: ResolvedDevToolsReporter
 }
 
 /**
@@ -92,8 +92,7 @@ export function createEmitter<Events extends Record<EventType, unknown>>(name: s
     let handlers = all.get(type);
     if (handlers) {
       const groupId = runningActionId++
-      console.log(eventBus._reporter.api)
-      eventBus._reporter.api.addTimelineEvent({
+      eventBus._reporter && eventBus._reporter.api.addTimelineEvent({
         layerId: EVENTBUS_LAYER_ID,
         event: {
           time: eventBus._reporter.now(),
@@ -113,7 +112,7 @@ export function createEmitter<Events extends Record<EventType, unknown>>(name: s
             handler(evt!)
           })
       } catch (err: any) {
-        eventBus._reporter.api.addTimelineEvent({
+        eventBus._reporter && eventBus._reporter.api.addTimelineEvent({
           layerId: EVENTBUS_LAYER_ID,
           event: {
             time: eventBus._reporter.now(),
