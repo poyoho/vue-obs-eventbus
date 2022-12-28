@@ -5,9 +5,8 @@
 </template>
 <script lang="ts" setup>
 import { ref } from "vue"
-import useEventBus from "./eventbus"
+import eventbus from "./eventbus"
 
-const eventbus = useEventBus()
 const print = ref('<emit print event>')
 
 eventbus.on('print', (data) => {

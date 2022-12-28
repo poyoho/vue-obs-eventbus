@@ -71,7 +71,7 @@ export const eventBus: EventBus = {
 /**
  * for declare typescript
 */
-export function defineBus<Events extends Record<EventType, unknown>>(name: string): () => Emitter<Events> {
+export function createEventBus<Events extends Record<EventType, unknown>>(name: string): Emitter<Events> {
 
   function createEmitter<Events extends Record<EventType, unknown>>(): Emitter<Events> {
     type GenericEventHandler =
@@ -145,14 +145,10 @@ export function defineBus<Events extends Record<EventType, unknown>>(name: strin
     return target
   }
 
-  function useBus() {
-    if (!eventBus._map.has(name)) {
-      const emitter = createEmitter()
-      eventBus._map.set(name, emitter)
-    }
-
-    return eventBus._map.get(name)
+  if (!eventBus._map.has(name)) {
+    const emitter = createEmitter()
+    eventBus._map.set(name, emitter)
   }
 
-  return useBus
+  return eventBus._map.get(name)
 }

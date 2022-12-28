@@ -1,6 +1,6 @@
-import { defineBus } from "vue-obs-eventbus"
+import { createEventBus } from "vue-obs-eventbus"
 
-export default defineBus<{
+export default createEventBus<{
   "print": any,
   "error": any,
   "save": any,
