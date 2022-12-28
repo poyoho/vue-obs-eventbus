@@ -1,7 +1,3 @@
-import { App, getCurrentInstance, inject, InjectionKey, isVue2 } from 'vue-demi'
-import { registerEventBusDevtools } from './devtools';
-import { IS_CLIENT } from './utils';
-
 export type EventType = string | symbol;
 
 export type Handler<T = unknown> = (event: T) => void;
@@ -41,14 +37,6 @@ export type EventBusActionsHandler = (event: {
 }) => void;
 
 export interface EventBus {
-  install: (app: App) => void
-  /**
-   * App linked to this eventbus instance
-   *
-   * @internal
-   */
-  _app: App
-
   /**
    * Registry of bus used by this eventbus.
    *
@@ -68,16 +56,24 @@ export interface EventBus {
  _actions: EventBusActionsHandler[]
 }
 
-export const eventbusSymbol = (
-  __DEV__ ? Symbol('eventbus') : Symbol()
-) as InjectionKey<EventBus>
+/**
+ * global eventbus instance
+*/
+export const eventBus: EventBus = {
+  _map: new Map(),
+  _actions: [],
+
+  $onActions(handler) {
+    this._actions.push(handler)
+  },
+}
 
 /**
  * for declare typescript
 */
 export function defineBus<Events extends Record<EventType, unknown>>(name: string): () => Emitter<Events> {
 
-  function createEmitter<Events extends Record<EventType, unknown>>(eventbus: EventBus): Emitter<Events> {
+  function createEmitter<Events extends Record<EventType, unknown>>(): Emitter<Events> {
     type GenericEventHandler =
       | Handler<Events[keyof Events]>
       | WildcardHandler<Events>
@@ -116,7 +112,7 @@ export function defineBus<Events extends Record<EventType, unknown>>(name: strin
             collectErrFn.push(fn)
           }
         }
-        eventbus._actions.forEach(onAction => {
+        eventBus._actions.forEach(onAction => {
           onAction(onActionArgs as any)
         })
         try {
@@ -149,59 +145,14 @@ export function defineBus<Events extends Record<EventType, unknown>>(name: strin
     return target
   }
 
-  function useEventBus() {
-    const instance = getCurrentInstance()
-
-    if (__DEV__ && !instance) {
-      throw new Error(
-        `[🚗]: defineEventBus was called with no active EventBus. Did you forget to install EventBus?\n` +
-          `\tconst eventbus = createEventBus()\n` +
-          `\tapp.use(eventbus)\n` +
-          `This will fail in production.`
-      )
+  function useBus() {
+    if (!eventBus._map.has(name)) {
+      const emitter = createEmitter()
+      eventBus._map.set(name, emitter)
     }
 
-    return inject(eventbusSymbol)
-  }
-
-  function useBus(eventbus?: EventBus) {
-    eventbus ||= useEventBus()
-
-    if (!eventbus._map.has(name)) {
-      const emitter = createEmitter(eventbus)
-      eventbus._map.set(name, emitter)
-    }
-
-    return eventbus._map.get(name)
+    return eventBus._map.get(name)
   }
 
   return useBus
-}
-
-export function createEventBus(): EventBus {
-  const root: EventBus = {
-    $onActions(handler) {
-      root._actions.push(handler)
-    },
-
-    install(app) {
-      if (!isVue2) {
-        root._app = app
-        app.provide(eventbusSymbol, root)
-        if (__DEV__ && IS_CLIENT) {
-          registerEventBusDevtools(app, root)
-        }
-      }
-    },
-
-    // @ts-ignore
-    _app: null,
-
-    _map: new Map(),
-
-    _actions: []
-  }
-
-
-  return root
 }

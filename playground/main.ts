@@ -1,7 +1,9 @@
 import { createApp } from 'vue'
 import App from './App.vue'
-import { createEventBus } from "vue-obs-eventbus"
+import { createEventBusDevToolsPlugin } from "vue-obs-eventbus"
 
-const eventbus = createEventBus()
+const eventbus = createEventBusDevToolsPlugin()
 
 createApp(App).use(eventbus).mount('#app')
+
+createApp(App).use(eventbus).mount('#app2')
